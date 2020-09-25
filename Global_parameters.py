@@ -19,10 +19,10 @@ payloadBits_per_OFDM = K * mu
 SNRdb = 25
 H_folder_train = '../H_dataset/Train/'
 H_folder_test = '../H_dataset/Test/'
-n_hidden_1 = 512
-n_hidden_2 = 256  # 1st layer num features
-n_hidden_3 = 128  # 2nd layer num features
-n_output = 128  # every 16 bit are predicted by a model
+n_hidden_1 = 1024
+n_hidden_2 = 512  # 1st layer num features
+n_hidden_3 = 256  # 2nd layer num features
+n_output = 128  # every 128 bit are predicted by a model
 
 
 def Modulation(bits):

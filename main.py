@@ -1,8 +1,60 @@
 from generations import *
-import tensorflow as tf
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print(device)
+
+class NeuralNet(nn.Module):
+    """
+    Neural Network Class Definition
+    """
+    def __init__(self):
+        super().__init__()
+        self.fc1 = nn.Linear(payloadBits_per_OFDM*2,n_hidden_1)
+        self.fc2 = nn.Linear(n_hidden_1,n_hidden_2)
+        self.fc3 = nn.Linear(n_hidden_2,n_hidden_3)
+        self.fc4 = nn.Linear(n_hidden_3,n_output)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = torch.relu(self.fc3(x))
+        x = torch.sigmoid(self.fc4(x))
+        return x
+
+net = NeuralNet()
+net.to(device) 
+criterion = nn.BCELoss()
+optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.9)
+
+n_of_epochs = 100
+
+for epoch in range(n_of_epochs):
+    running_loss = 0
+    for inputs,labels in training_gen(64,25):
+        optimizer.zero_grad()
+
+        inputs = torch.from_numpy(inputs).float()
+        labels = torch.from_numpy(labels).float()
+        inputs, labels = inputs.to(device), labels.to(device)
+        
+        outputs = net(inputs)
+        loss = criterion(outputs,labels)
+        loss.backward()
+        optimizer.step()
+        # print statistics
+        running_loss += loss.item()
+        print(loss.item())
+    if epoch % 5 == 1:    # print every 2000 mini-batches
+        print('[%d] loss: %.3f' %
+                (epoch + 1, running_loss / 2000))
+        running_loss = 0.0
 
 
-def bit_err(y_true, y_pred):
+
+"""def bit_err(y_true, y_pred):
     err = 1 - tf.reduce_mean(
         tf.reduce_mean(
             tf.cast(
@@ -16,7 +68,7 @@ def bit_err(y_true, y_pred):
             1))
     return err
 
-"""#comment the 2 lines below if u dont have cuda-enabled gpu
+#comment the 2 lines below if u dont have cuda-enabled gpu
 physical_devices = tf.config.list_physical_devices('GPU') 
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
 

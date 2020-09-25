@@ -7,8 +7,8 @@ test_size = channel_test.shape[0]
 print(channel_train.shape)
 
 def training_gen(bs, SNRdb = 20):
-    while True:
-        index = np.random.choice(np.arange(train_size), size=bs)
+    for i in range(train_size//bs):
+        index = np.random.choice(np.arange(train_size), size=bs, replace=False)
         H_total = channel_train[index]
         input_samples = []
         input_labels = []
