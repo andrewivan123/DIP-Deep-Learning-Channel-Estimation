@@ -16,7 +16,6 @@ else:  # K = P
 
 mu = 2
 payloadBits_per_OFDM = K * mu
-SNRdb = 25
 H_folder_train = '../H_dataset/Train/'
 H_folder_test = '../H_dataset/Test/'
 n_hidden_1 = 1024

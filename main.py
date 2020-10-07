@@ -30,10 +30,12 @@ criterion = nn.BCELoss()
 optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.9)
 
 n_of_epochs = 100
+batch_size = 64
+SNRdb = 25
 
 for epoch in range(n_of_epochs):
     running_loss = 0
-    for inputs,labels in training_gen(64,25):
+    for inputs,labels in training_gen(batch_size,SNRdb):
         optimizer.zero_grad()
 
         inputs = torch.from_numpy(inputs).float()
@@ -46,10 +48,9 @@ for epoch in range(n_of_epochs):
         optimizer.step()
         # print statistics
         running_loss += loss.item()
-        print(loss.item())
-    if epoch % 5 == 1:    # print every 2000 mini-batches
+    if epoch % 1 == 0:    # print every 2000 mini-batches
         print('[%d] loss: %.3f' %
-                (epoch + 1, running_loss / 2000))
+                (epoch + 1, running_loss / batch_size))
         running_loss = 0.0
 
 
