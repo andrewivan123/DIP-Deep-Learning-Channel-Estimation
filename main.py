@@ -2,20 +2,29 @@ from generations import *
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from matplotlib import pyplot as plt
+from matplotlib.animation import FuncAnimation
+import os
+
+PATH = "running_model.pt"
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
+
+
+
 
 class NeuralNet(nn.Module):
     """
     Neural Network Class Definition
     """
+
     def __init__(self):
         super().__init__()
-        self.fc1 = nn.Linear(payloadBits_per_OFDM*2,n_hidden_1)
-        self.fc2 = nn.Linear(n_hidden_1,n_hidden_2)
-        self.fc3 = nn.Linear(n_hidden_2,n_hidden_3)
-        self.fc4 = nn.Linear(n_hidden_3,n_output)
+        self.fc1 = nn.Linear(payloadBits_per_OFDM * 2, n_hidden_1)
+        self.fc2 = nn.Linear(n_hidden_1, n_hidden_2)
+        self.fc3 = nn.Linear(n_hidden_2, n_hidden_3)
+        self.fc4 = nn.Linear(n_hidden_3, n_output)
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
@@ -24,51 +33,74 @@ class NeuralNet(nn.Module):
         x = torch.sigmoid(self.fc4(x))
         return x
 
-net = NeuralNet()
-net.to(device) 
-criterion = nn.BCELoss()
-optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.9)
 
-n_of_epochs = 100
+
+
+n_of_batches = 2000
 batch_size = 64
-SNRdb = 25
+SNRdb = 10 #5 15 20 25
 
-for epoch in range(n_of_epochs):
-    running_loss = 0
-    for inputs,labels in training_gen(batch_size,SNRdb):
-        optimizer.zero_grad()
-
-        inputs = torch.from_numpy(inputs).float()
-        labels = torch.from_numpy(labels).float()
-        inputs, labels = inputs.to(device), labels.to(device)
-        
-        outputs = net(inputs)
-        loss = criterion(outputs,labels)
-        loss.backward()
-        optimizer.step()
-        # print statistics
-        running_loss += loss.item()
-    if epoch % 1 == 0:    # print every 2000 mini-batches
-        print('[%d] loss: %.3f' %
-                (epoch + 1, running_loss / batch_size))
-        running_loss = 0.0
-
-
-
-"""def bit_err(y_true, y_pred):
-    err = 1 - tf.reduce_mean(
-        tf.reduce_mean(
-            tf.cast(
-                tf.equal(
-                    tf.sign(
-                        y_pred - 0.5),
-                    tf.cast(
-                        tf.sign(
-                            y_true - 0.5),
-                        tf.float32)),tf.float32),
-            1))
+def bit_err(y_true, y_pred):
+    err = 1 - torch.mean(
+        torch.mean(
+                torch.eq(torch.sign(y_pred - 0.5),torch.sign(y_true - 0.5)).type(torch.float),1))
     return err
 
+#check if saved checkpoint exists
+"""if os.path.exists(PATH):
+    checkpoint = torch.load(PATH)
+    net.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    loss = checkpoint['loss']"""
+
+for snr in [5,10,15,20,25]:
+    net = NeuralNet()
+    net.to(device)
+    criterion = nn.BCELoss()
+    optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.9)
+    # Draw Graph
+    x_values = []
+    y_values = []
+    for batch in range(n_of_batches):
+        running_loss = 0
+        running_BER = 0
+        for inputs, labels in training_gen(batch_size, SNRdb):
+            optimizer.zero_grad()
+
+            inputs = torch.from_numpy(inputs).float()
+            labels = torch.from_numpy(labels).float()
+            inputs, labels = inputs.to(device), labels.to(device)
+
+            outputs = net(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            running_BER += bit_err(labels,outputs)
+            # print statistics
+            running_loss += loss.item()
+        if batch % 100 == 0:  # print every 2000 mini-batches
+            print('[%d] loss: %.3f' %
+                (batch + 1, running_loss / batch_size))
+            print('[%d] BER: %.3f' %
+                (batch + 1, running_BER / batch_size))
+
+            # Save
+            """torch.save({
+                'model_state_dict': net.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'loss': running_loss/batch_size,
+                }, PATH)"""
+
+            x_values.append(batch + 1)
+            y_values.append(round(loss.item(), 3))
+    plt.clf()
+    plt.title(f'BER Plot (SNR = {snr}dB)')
+    plt.xlabel('Batches')
+    plt.ylabel('BER')
+    plt.plot(x_values, y_values)
+    plt.savefig(f'plot_{snr}dB.png')
+
+"""
 #comment the 2 lines below if u dont have cuda-enabled gpu
 physical_devices = tf.config.list_physical_devices('GPU') 
 tf.config.experimental.set_memory_growth(physical_devices[0], True)

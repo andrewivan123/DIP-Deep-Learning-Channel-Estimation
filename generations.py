@@ -6,8 +6,8 @@ channel_test = np.load('channel_test.npy')
 test_size = channel_test.shape[0]
 print(channel_train.shape)
 
-def training_gen(bs, SNRdb = 20):
-    for i in range(train_size//bs):
+def training_gen(bs, SNRdb):
+    for i in range(bs):
         index = np.random.choice(np.arange(train_size), size=bs, replace=False)
         H_total = channel_train[index]
         input_samples = []
@@ -20,7 +20,7 @@ def training_gen(bs, SNRdb = 20):
         yield (np.asarray(input_samples), np.asarray(input_labels))
 
 
-def validation_gen(bs, SNRdb = 20):
+def validation_gen(bs, SNRdb):
     while True:
         index = np.random.choice(np.arange(train_size), size=bs)
         H_total = channel_train[index]
