@@ -36,7 +36,7 @@ class NeuralNet(nn.Module):
 
 
 
-n_of_batches = 2000
+n_of_batches = 10000
 batch_size = 64
 SNRdb = 10 #5 15 20 25
 
@@ -52,6 +52,8 @@ def bit_err(y_true, y_pred):
     net.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     loss = checkpoint['loss']"""
+#save the BER for the last batch
+final_BER = []
 
 for snr in [5,10,15,20,25]:
     net = NeuralNet()
@@ -61,6 +63,7 @@ for snr in [5,10,15,20,25]:
     # Draw Graph
     x_values = []
     y_values = []
+    BER_values = []
     for batch in range(n_of_batches):
         running_loss = 0
         running_BER = 0
@@ -93,12 +96,17 @@ for snr in [5,10,15,20,25]:
 
             x_values.append(batch + 1)
             y_values.append(round(loss.item(), 3))
+            BER_values.append(bit_err(labels,outputs))
+    #save final value
+    final_BER.append(BER_values[-1])
+
     plt.clf()
     plt.title(f'BER Plot (SNR = {snr}dB)')
     plt.xlabel('Batches')
     plt.ylabel('BER')
-    plt.plot(x_values, y_values)
-    plt.savefig(f'plot_{snr}dB.png')
+    plt.plot(x_values, BER_values)
+    plt.savefig(f'BER_{snr}dB.png')
+print(final_BER)
 
 """
 #comment the 2 lines below if u dont have cuda-enabled gpu
